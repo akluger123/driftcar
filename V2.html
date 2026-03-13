@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Drift - Tuned</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        canvas {
+            border: 10px solid #555;
+            background: #333;
+            image-rendering: pixelated;
+        }
+        #ui {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: #aaa;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">WASD to Drive & Drift</div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = 800;
+canvas.height = 600;
+
+// --- TUNING CONSTANTS ---
+const FRICTION = 0.97;       // Friction for sliding
+const ACCEL = 0.08;          // Gentle acceleration
+const STEER_SPEED = 0.07;    // Turn rate
+const MAX_SPEED =
