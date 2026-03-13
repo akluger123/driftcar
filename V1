@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Drift</title>
+    <style>
+        body {
+            margin: 0;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        canvas {
+            border: 8px solid #444;
+            background: #333;
+            image-rendering: pixelated;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">WASD to Drift</div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = 800;
+canvas.height = 600;
+
+// Game Constants
+const FRICTION = 0.98;
+const DRIFT_FRICTION = 0.85;
+const ACCEL = 0.2;
+const STEER_SPEED = 0.05;
+
+// State
+const keys = {};
+let particles = [];
+
+const car = {
+    x: 400,
+    y: 300,
+    angle: 0,
+    speed: 0,
+    vx: 0,
+    vy: 0,
+    width: 20,
+    height: 10,
+    color: '#ff3e3e'
+};
+
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+class Particle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 5 + 2;
+        this.life = 1.0;
+        this.v = (Math.random() - 0.5) * 0.5;
+    }
+    update() {
+        this.life -= 0.02;
+        this.size += 0.1;
+    }
+    draw() {
+        ctx.fillStyle = `rgba(150, 150, 150, ${this.life})`;
+        ctx.fillRect(this.x, this.y, this.size, this.size);
+    }
+}
+
+function update() {
+    // Steering
+    if (keys['KeyA']) car.angle -= STEER_SPEED * (Math.min(Math.abs(car.speed), 2) / 2);
+    if (keys['KeyD']) car.angle += STEER_SPEED * (Math.min(Math.abs(car.speed), 2) / 2);
+
+    // Acceleration
+    if (keys['KeyW']) car.speed += ACCEL;
+    if (keys['KeyS']) car.speed -= ACCEL * 0.5;
+
+    // Apply Velocity
+    car.vx += Math.cos(car.angle) * car.speed;
+    car.vy += Math.sin(car.angle) * car.speed;
+
+    // Physics: Drift logic (separate forward momentum from sideways sliding)
+    car.vx *= FRICTION;
+    car.vy *= FRICTION;
+    car.speed *= 0.9; // Base engine deceleration
+
+    car.x += car.vx;
+    car.y += car.vy;
+
+    // Borders / Screen Wrap
+    if (car.x > canvas.width) car.x = 0;
+    if (car.x < 0) car.x = canvas.width;
+    if (car.y > canvas.height) car.y = 0;
+    if (car.y < 0) car.y = canvas.height;
+
+    // Generate Drift Smoke
+    // If the angle of movement differs significantly from the car's facing angle
+    const moveAngle = Math.atan2(car.vy, car.vx);
+    const driftIntensity = Math.abs(car.angle - moveAngle);
+    
+    if (Math.abs(car.speed) > 1 && (keys['KeyA'] || keys['KeyD'])) {
+        particles.push(new Particle(car.x, car.y));
+    }
+
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => p.update());
+}
+
+function draw() {
+    // Clear
+    ctx.fillStyle = '#333';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Smoke
+    particles.forEach(p => p.draw());
+
+    // Draw Car
+    ctx.save();
+    ctx.translate(car.x, car.y);
+    ctx.rotate(car.angle);
+    
+    // Pixel Car Body
+    ctx.fillStyle = car.color;
+    ctx.fillRect(-car.width/2, -car.height/2, car.width, car.height);
+    
+    // Windshield (front)
+    ctx.fillStyle = '#87ceeb';
+    ctx.fillRect(car.width/4, -car.height/2 + 2, 4, car.height - 4);
+    
+    // Taillights (back)
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-car.width/2, -car.height/2, 2, 2);
+    ctx.fillRect(-car.width/2, car.height/2 - 2, 2, 2);
+
+    ctx.restore();
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
